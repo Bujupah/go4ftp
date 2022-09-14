@@ -1,4 +1,4 @@
-package bmcftp
+package go4ftp
 
 import (
 	"bufio"
@@ -21,18 +21,15 @@ func NewSFTP(config ConnConfig) Instance {
 }
 
 func (s *SFTP) Ping() error {
-	fmt.Printf("Trying to connect to %s server\n", strings.ToUpper(s.config.Type))
 	client, err := s.connect()
 	defer client.Close()
 	if err != nil {
 		return err
 	}
-	fmt.Printf("Successfully connected to %s server\n", strings.ToUpper(s.config.Type))
 	return nil
 }
 
 func (s *SFTP) UploadFile(fileUpload FileUpload) error {
-	fmt.Printf("Trying to connect to %s server\n", strings.ToUpper(s.config.Type))
 	sshClient, err := s.connect()
 	if err != nil {
 		return err
@@ -123,14 +120,14 @@ func getHostKey(host string) (*ssh.PublicKey, error) {
 			var err error
 			hostKey, _, _, _, err = ssh.ParseAuthorizedKey(scanner.Bytes())
 			if err != nil {
-				return nil, errors.New(fmt.Sprintf("error parsing %q: %v", fields[2], err))
+				return nil, errors.New(fmt.Sprintf("Error parsing %q: %v", fields[2], err))
 			}
 			break
 		}
 	}
 
 	if hostKey == nil {
-		return nil, errors.New(fmt.Sprintf("no hostkey found for %s", host))
+		return nil, errors.New(fmt.Sprintf("No hostkey found for %s", host))
 	}
 
 	return &hostKey, nil

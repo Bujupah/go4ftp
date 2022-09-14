@@ -1,9 +1,8 @@
-package bmcftp
+package go4ftp
 
 import (
 	"errors"
 	"fmt"
-	"strings"
 	"time"
 )
 
@@ -29,7 +28,6 @@ type Instance interface {
 }
 
 func NewInstance(config ConnConfig) (Instance, error) {
-	fmt.Printf("Creating new %s Instance\n", strings.ToUpper(config.Protocol))
 	if config.Protocol == "sftp" {
 		return NewSFTP(config), nil
 	}

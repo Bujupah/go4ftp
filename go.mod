@@ -1,4 +1,4 @@
-module github.bmc.com/kmejdi/bmcftp
+module github.com/Bujupah/go4ftp
 
 go 1.17
 

@@ -1,4 +1,4 @@
-package bmcftp
+package go4ftp
 
 import (
 	"errors"
@@ -18,13 +18,11 @@ func NewFTP(config ConnConfig) Instance {
 }
 
 func (s *FTP) Ping() error {
-	fmt.Printf("Trying to connect to %s server\n", strings.ToUpper(s.config.Type))
 	client, err := s.connect()
 	if err != nil {
 		return err
 	}
 	defer client.Quit()
-	fmt.Printf("Successfully connected to %s server\n", strings.ToUpper(s.config.Type))
 	return nil
 }
 
@@ -46,7 +44,6 @@ func (s *FTP) UploadFile(fileUpload FileUpload) error {
 
 		if err := client.ChangeDir(current); err != nil {
 			// create folder
-			fmt.Printf("Navigating to %s and creating folder %s\n", current, folder)
 			if err := client.MakeDir(folder); err != nil {
 				return errors.New(fmt.Sprintf("Failed to create folder %s: %s", folder, err.Error()))
 			}
