@@ -24,6 +24,8 @@ type FileUpload struct {
 
 type Instance interface {
 	Ping() error
+	Connect() error
+	Close() error
 	UploadFile(FileUpload) error
 }
 

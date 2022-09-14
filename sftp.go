@@ -12,38 +12,33 @@ import (
 )
 
 type SFTP struct {
-	config ConnConfig
+	config    ConnConfig
+	sshClient *ssh.Client
+	client    *sftp.Client
 }
 
 func NewSFTP(config ConnConfig) Instance {
-	return &SFTP{config}
+	return &SFTP{config, nil, nil}
 
 }
 
 func (s *SFTP) Ping() error {
-	client, err := s.connect()
-	defer client.Close()
+	err := s.Connect()
 	if err != nil {
 		return err
 	}
+	defer s.Close()
 	return nil
 }
 
 func (s *SFTP) UploadFile(fileUpload FileUpload) error {
-	sshClient, err := s.connect()
-	if err != nil {
-		return err
-	}
-	defer sshClient.Close()
-
-	client, err := sftp.NewClient(sshClient)
-	if err := client.MkdirAll(fileUpload.FTPFolder); err != nil {
+	if err := s.client.MkdirAll(fileUpload.FTPFolder); err != nil {
 		return err
 	}
 
 	// Create file in SFTP server
 	path := filepath.Join(fileUpload.FTPFolder, fileUpload.FTPFileName)
-	f, err := client.Create(path)
+	f, err := s.client.Create(path)
 	if err != nil {
 		return err
 	}
@@ -64,19 +59,34 @@ func (s *SFTP) UploadFile(fileUpload FileUpload) error {
 	return nil
 }
 
-func (s *SFTP) connect() (*ssh.Client, error) {
+func (s *SFTP) Connect() error {
 	config, err := sshClientConfig(s.config)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	url := fmt.Sprintf("%s:%s", s.config.Host, s.config.Port)
-	client, err := ssh.Dial("tcp", url, config)
-
+	s.sshClient, err = ssh.Dial("tcp", url, config)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	return client, nil
+
+	client, err := sftp.NewClient(s.sshClient)
+	if err != nil {
+		return err
+	}
+	s.client = client
+	return nil
+}
+
+func (s *SFTP) Close() error {
+	if s.sshClient != nil {
+		defer s.sshClient.Close()
+	}
+	if s.client != nil {
+		defer s.client.Close()
+	}
+	return nil
 }
 
 func sshClientConfig(conn ConnConfig) (*ssh.ClientConfig, error) {
