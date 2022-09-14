@@ -11,18 +11,18 @@ import (
 	"strings"
 )
 
-type SFTP struct {
+type _SFTP struct {
 	config    ConnConfig
 	sshClient *ssh.Client
 	client    *sftp.Client
 }
 
-func NewSFTP(config ConnConfig) Instance {
-	return &SFTP{config, nil, nil}
+func newSFTP(config ConnConfig) _Instance {
+	return &_SFTP{config, nil, nil}
 
 }
 
-func (s *SFTP) Ping() error {
+func (s *_SFTP) Ping() error {
 	err := s.Connect()
 	if err != nil {
 		return err
@@ -31,7 +31,14 @@ func (s *SFTP) Ping() error {
 	return nil
 }
 
-func (s *SFTP) UploadFile(fileUpload FileUpload) error {
+func (s *_SFTP) UploadFile(fileUpload FileUpload) error {
+	if s.client == nil {
+		// If client is nil try to connect
+		if err := s.Connect(); err != nil {
+			return err
+		}
+	}
+
 	if err := s.client.MkdirAll(fileUpload.FTPFolder); err != nil {
 		return err
 	}
@@ -59,13 +66,13 @@ func (s *SFTP) UploadFile(fileUpload FileUpload) error {
 	return nil
 }
 
-func (s *SFTP) Connect() error {
+func (s *_SFTP) Connect() error {
 	config, err := sshClientConfig(s.config)
 	if err != nil {
 		return err
 	}
 
-	url := fmt.Sprintf("%s:%s", s.config.Host, s.config.Port)
+	url := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
 	s.sshClient, err = ssh.Dial("tcp", url, config)
 	if err != nil {
 		return err
@@ -79,7 +86,7 @@ func (s *SFTP) Connect() error {
 	return nil
 }
 
-func (s *SFTP) Close() error {
+func (s *_SFTP) Close() error {
 	if s.sshClient != nil {
 		defer s.sshClient.Close()
 	}

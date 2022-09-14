@@ -9,7 +9,7 @@ import (
 type ConnConfig struct {
 	Protocol      string
 	Host          string
-	Port          string
+	Port          int
 	User          string
 	Password      string
 	Timeout       time.Duration
@@ -22,19 +22,19 @@ type FileUpload struct {
 	FTPFileName   string
 }
 
-type Instance interface {
+type _Instance interface {
 	Ping() error
 	Connect() error
 	Close() error
 	UploadFile(FileUpload) error
 }
 
-func NewInstance(config ConnConfig) (Instance, error) {
+func NewInstance(config ConnConfig) (_Instance, error) {
 	if config.Protocol == "sftp" {
-		return NewSFTP(config), nil
+		return newSFTP(config), nil
 	}
 	if config.Protocol == "ftp" {
-		return NewFTP(config), nil
+		return newFTP(config), nil
 	}
 	return nil, errors.New(fmt.Sprintf("Protocol %s not supported", config.Protocol))
 }

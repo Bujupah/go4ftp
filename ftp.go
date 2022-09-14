@@ -9,16 +9,16 @@ import (
 	"strings"
 )
 
-type FTP struct {
+type _FTP struct {
 	config ConnConfig
 	client *ftp.ServerConn
 }
 
-func NewFTP(config ConnConfig) Instance {
-	return &FTP{config, nil}
+func newFTP(config ConnConfig) _Instance {
+	return &_FTP{config, nil}
 }
 
-func (s *FTP) Ping() error {
+func (s *_FTP) Ping() error {
 	err := s.Connect()
 	if err != nil {
 		return err
@@ -27,7 +27,7 @@ func (s *FTP) Ping() error {
 	return nil
 }
 
-func (s *FTP) UploadFile(fileUpload FileUpload) error {
+func (s *_FTP) UploadFile(fileUpload FileUpload) error {
 	// Recursively create folder in FTP server
 	folders := strings.Split(fileUpload.FTPFolder, "/")
 	currentDir, _ := s.client.CurrentDir()
@@ -67,22 +67,22 @@ func (s *FTP) UploadFile(fileUpload FileUpload) error {
 	return nil
 }
 
-func (s *FTP) Connect() error {
-	url := fmt.Sprintf("%s:%s", s.config.Host, s.config.Port)
+func (s *_FTP) Connect() error {
+	url := fmt.Sprintf("%v:%v", s.config.Host, s.config.Port)
 	c, err := ftp.Dial(url, ftp.DialWithTimeout(s.config.Timeout))
 	if err != nil {
 		return err
 	}
 	err = c.Login(s.config.User, s.config.Password)
 	if err != nil {
-		errors.New(fmt.Sprintf("Failed to connect to server: %s", err.Error()))
+		return errors.New(fmt.Sprintf("Failed to connect to server: %s", err.Error()))
 	}
 	s.client = c
 	return nil
 }
 
 // Close closes the connection to the FTP server.
-func (s *FTP) Close() error {
+func (s *_FTP) Close() error {
 	if s.client != nil {
 		defer s.client.Quit()
 	}
