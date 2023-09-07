@@ -11,27 +11,56 @@ import (
 	"strings"
 )
 
-type _SFTP struct {
+type SFTP struct {
 	config    ConnConfig
 	sshClient *ssh.Client
 	client    *sftp.Client
 }
 
-func newSFTP(config ConnConfig) _Instance {
-	return &_SFTP{config, nil, nil}
+func newSFTP(config ConnConfig) Instance {
+	return &SFTP{config, nil, nil}
 
 }
 
-func (s *_SFTP) Ping() error {
+func (s *SFTP) Connect() error {
+	config, err := sshClientConfig(s.config)
+	if err != nil {
+		return err
+	}
+
+	url := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
+	s.sshClient, err = ssh.Dial("tcp", url, config)
+	if err != nil {
+		return err
+	}
+
+	client, err := sftp.NewClient(s.sshClient)
+	if err != nil {
+		return err
+	}
+	s.client = client
+	return nil
+}
+
+func (s *SFTP) Close() error {
+	if s.sshClient != nil {
+		return s.sshClient.Close()
+	}
+	if s.client != nil {
+		return s.client.Close()
+	}
+	return nil
+}
+
+func (s *SFTP) Ping() error {
 	err := s.Connect()
 	if err != nil {
 		return err
 	}
-	defer s.Close()
-	return nil
+	return s.Close()
 }
 
-func (s *_SFTP) UploadFile(fileUpload FileUpload) error {
+func (s *SFTP) UploadFile(fileUpload FileUpload) error {
 	if s.client == nil {
 		// If client is nil try to connect
 		if err := s.Connect(); err != nil {
@@ -61,39 +90,31 @@ func (s *_SFTP) UploadFile(fileUpload FileUpload) error {
 	if _, err := f.Write(file); err != nil {
 		return errors.New(fmt.Sprintf("Failed to upload file: %s", err.Error()))
 	}
-	f.Close()
 
-	return nil
+	return f.Close()
 }
 
-func (s *_SFTP) Connect() error {
-	config, err := sshClientConfig(s.config)
+func (s *SFTP) Read(path string) ([]Entries, error) {
+	err := s.Connect()
 	if err != nil {
-		return err
+		return nil, err
+	}
+	defer s.Close()
+
+	res, err := s.client.ReadDir(path)
+	if err != nil {
+		return nil, err
 	}
 
-	url := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
-	s.sshClient, err = ssh.Dial("tcp", url, config)
-	if err != nil {
-		return err
+	result := make([]Entries, 0)
+	for _, entry := range res {
+		result = append(result, Entries{
+			Name: entry.Name(),
+			Size: uint64(entry.Size()),
+		})
 	}
 
-	client, err := sftp.NewClient(s.sshClient)
-	if err != nil {
-		return err
-	}
-	s.client = client
-	return nil
-}
-
-func (s *_SFTP) Close() error {
-	if s.sshClient != nil {
-		defer s.sshClient.Close()
-	}
-	if s.client != nil {
-		defer s.client.Close()
-	}
-	return nil
+	return result, nil
 }
 
 func sshClientConfig(conn ConnConfig) (*ssh.ClientConfig, error) {

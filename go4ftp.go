@@ -22,14 +22,21 @@ type FileUpload struct {
 	FTPFileName   string
 }
 
-type _Instance interface {
+type Entries struct {
+	Name string `json:"name"`
+	Size uint64 `json:"size"`
+}
+
+type Instance interface {
 	Ping() error
 	Connect() error
 	Close() error
+
+	Read(string) ([]Entries, error)
 	UploadFile(FileUpload) error
 }
 
-func NewInstance(config ConnConfig) (_Instance, error) {
+func NewInstance(config ConnConfig) (Instance, error) {
 	if config.Protocol == "sftp" {
 		return newSFTP(config), nil
 	}
