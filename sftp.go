@@ -60,7 +60,36 @@ func (s *SFTP) Ping() error {
 	return s.Close()
 }
 
-func (s *SFTP) UploadFile(fileUpload FileUpload) error {
+func (s *SFTP) DownloadFile(source string, target string) error {
+	err := s.Connect()
+	if err != nil {
+		return err
+	}
+	defer s.Close()
+
+	// Open and read local file
+	file, err := os.Create(target)
+	if err != nil {
+		return errors.New("Failed to create file")
+	}
+	defer file.Close()
+
+	// download file from SFTP server
+	f, err := s.client.Open(source)
+	if err != nil {
+		return errors.New("Failed to download file")
+	}
+	defer f.Close()
+
+	// Write local file to SFTP server
+	if _, err := f.WriteTo(file); err != nil {
+		return errors.New(fmt.Sprintf("Failed to upload file: %s", err.Error()))
+	}
+
+	return nil
+}
+
+func (s *SFTP) UploadFile(source string, target string) error {
 	if s.client == nil {
 		// If client is nil try to connect
 		if err := s.Connect(); err != nil {
@@ -68,22 +97,23 @@ func (s *SFTP) UploadFile(fileUpload FileUpload) error {
 		}
 	}
 
-	if err := s.client.MkdirAll(fileUpload.FTPFolder); err != nil {
+	// get folder from target
+	folder := filepath.Dir(target)
+	if err := s.client.MkdirAll(folder); err != nil {
 		return err
 	}
 
 	// Create file in SFTP server
-	path := filepath.Join(fileUpload.FTPFolder, fileUpload.FTPFileName)
-	f, err := s.client.Create(path)
+	f, err := s.client.Create(target)
 	if err != nil {
 		return err
 	}
 	defer f.Close()
 
 	// Open and read local file
-	file, err := os.ReadFile(fileUpload.LocalFilepath)
+	file, err := os.ReadFile(source)
 	if err != nil {
-		return errors.New(fmt.Sprintf("Failed to open file %s: %v", fileUpload.LocalFilepath, err))
+		return errors.New(fmt.Sprintf("Failed to open file %s: %v", source, err))
 	}
 
 	// Write local file to SFTP server

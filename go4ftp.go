@@ -16,12 +16,6 @@ type ConnConfig struct {
 	IgnoreHostKey bool
 }
 
-type FileUpload struct {
-	LocalFilepath string
-	FTPFolder     string
-	FTPFileName   string
-}
-
 type Entries struct {
 	Name string `json:"name"`
 	Size uint64 `json:"size"`
@@ -32,8 +26,10 @@ type Instance interface {
 	Connect() error
 	Close() error
 
+	UploadFile(source string, target string) error
+	DownloadFile(source string, target string) error
+
 	Read(string) ([]Entries, error)
-	UploadFile(FileUpload) error
 }
 
 func NewInstance(config ConnConfig) (Instance, error) {
